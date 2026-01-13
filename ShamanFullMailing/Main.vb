@@ -7,6 +7,8 @@ Public Class Main
     Private dtLog As New DataTable
     Private vEmailsTop As Integer = 1
     Private IsResend As Boolean = False
+    Private processMailing As Boolean = True
+    Private processFacturacion As Boolean = True
 
     Private Sub Main_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
         Try
@@ -25,6 +27,19 @@ Public Class Main
             Dim cacheApp As String = ConfigurationManager.AppSettings("CacheApp").ToString()
             Dim cacheShamanUser As String = ConfigurationManager.AppSettings("CacheShamanUser").ToString()
             Dim cacheCentroOperativo As Integer = Val(ConfigurationManager.AppSettings("CacheCentroOperativo").ToString())
+
+            Try
+                processMailing = setIntToBool(Val(ConfigurationManager.AppSettings("processMailing")))
+            Catch ex As Exception
+
+            End Try
+            Try
+                processFacturacion = setIntToBool(Val(ConfigurationManager.AppSettings("processFacturacion")))
+            Catch ex As Exception
+
+            End Try
+
+
             IsResend = setIntToBool(Val(ConfigurationManager.AppSettings("Resend").ToString()))
 
             If ShamanSession.Iniciar(cacheServer, cachePort, cacheNameSpace, cacheApp, cacheShamanUser, cacheCentroOperativo) Then
@@ -56,6 +71,8 @@ Public Class Main
 
     Private Sub EnviarMails()
         Try
+
+            If Not processMailing Then Exit Sub
 
             Dim objMails As New ShamanClases.PanelC.MensajesPager
             Dim objAutomatizacion As New VentasDX.CliDocAutomatizacion
@@ -278,6 +295,8 @@ Public Class Main
     Private Sub FacturarCopagos()
         Try
 
+            If Not processFacturacion Then Exit Sub
+
             Dim objClientesDocumentos As New ShamanClases.VentasC.ClientesDocumentos
 
             '------------> Facturación Pendiente
@@ -353,7 +372,7 @@ Public Class Main
 
                             dtRenglones.Rows.Add(rowRen)
 
-                            Dim vDocIdId As Decimal = objClientesDocumentos.jobFacturacionSimple("FAC", objTalonarios.ID, vNroSig, 0, row("ClienteId"), Now.Date, Now.Date, Val(Now.Date.Year & Now.Date.Month.ToString("00")), "CMP", 0, 1, "D", "D", dtRenglones, , , , Val(row("NroDocumento")))
+                            Dim vDocIdId As Decimal = objClientesDocumentos.jobFacturacionSimple("FAC", objTalonarios.ID, vNroSig, 0, row("ClienteId"), Now.Date, Now.Date, Val(Now.Date.Year & Now.Date.Month.ToString("00")), "CMP", 0, 1, "D", "D", dtRenglones, , , , Val(row("NroDocumento")), row("Paciente"))
 
                             '---> AFIP
 
@@ -405,13 +424,12 @@ Public Class Main
 
                 End If
 
-
             End If
 
             objClientesDocumentos = Nothing
 
         Catch ex As Exception
-            HandleError(Me.Name, "EnviarMails", ex)
+            HandleError(Me.Name, "FacturarCopagos", ex)
             MsgBox(ex.Message)
         End Try
     End Sub
@@ -835,7 +853,7 @@ Public Class Main
     Private Sub tmrInit_Tick(sender As Object, e As EventArgs) Handles tmrInit.Tick
         Try
             Me.tmrInit.Enabled = False
-            'Me.EnviarMails()
+            Me.EnviarMails()
             Me.FacturarCopagos()
             Me.tmrInit.Enabled = True
         Catch ex As Exception
