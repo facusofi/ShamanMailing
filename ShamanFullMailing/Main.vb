@@ -109,10 +109,13 @@ Public Class Main
                         IsResend = False
                     End If
 
+                    Dim vEmail As String = dt.Rows(vIdx)("Email").ToString().ToLower()
+                    If vEmail.Contains(",") Then vEmail = ""
+
                     '-----> Envio Email
                     Dim vSend As Boolean = objAutomatizacion.SendComprobanteEmail(objClientesDocumentos.ID, objClientesDocumentos.ClienteId.ID, objClientesDocumentos.TalonarioId.EmpresaLegalId.RazonSocial,
                                                                                   objClientesDocumentos.NroComprobante, setTipoCliente(objClientesDocumentos.ClienteId.TipoClienteId.TipoClienteId), objClientesDocumentos.TipoProceso,
-                                                                                  vMsgRef, , , IsResend)
+                                                                                  vMsgRef, , , IsResend, vEmail)
 
                     If vSend Then
                         objMails.SetEstadoMensaje(dt.Rows(vIdx)("ID"), setBoolToInt(vSend), "")
@@ -383,6 +386,8 @@ Public Class Main
                                 '---> Mailing
 
                                 If vDevVal.Resultado Then
+
+                                    vNroSig += 1
 
                                     Dim objAutomatizacion As New VentasDX.CliDocAutomatizacion()
 
